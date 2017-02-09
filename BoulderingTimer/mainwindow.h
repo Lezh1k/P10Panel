@@ -13,6 +13,18 @@ class QSerialPort;
 class QSerialPortInfo;
 class QStandardItemModel;
 
+class MainWindowInitializer : public QObject {
+  Q_OBJECT
+private:
+public:
+  MainWindowInitializer();
+  virtual ~MainWindowInitializer();
+public slots:
+  void start_initialization();
+signals:
+  void waiting_finished();
+};
+
 class MainWindow : public QMainWindow
 {
   Q_OBJECT
@@ -45,13 +57,13 @@ private:
   void Stop(void);
 
   void change_controls_enabled_state();
-  void adjust_font_size(void);
   void time_elapsed(void);
   void set_current_time_text(void);
 
   void send_to_p10();
 
 private slots:
+  void adjust_font_size();
   void ChkLoop_Changed(bool checked);
   void BtnStartStop_Clicked(void);
   void MainTimer_Timeout(void);

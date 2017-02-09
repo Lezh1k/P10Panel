@@ -78,15 +78,21 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->m_lbl_error->setVisible(false);
 
   //UGLY HACK N1. I don't know how to adjust font size.
-  //so I'm waiting here 200ms for constuction finishing and
+  //so I'm waiting here 100ms for constuction finishing and
   //then label is resized by layout. So I need to adjust font
   //size in that moment. Whoever knows how to adjust font size
   //right before form is shown - please send me this info to
   //lezh1k.vohrer@gmail.com.
-  QtConcurrent::run([&](){
-    QThread::msleep(200);
-    adjust_font_size();
-  });
+
+  MainWindowInitializer* mwi = new MainWindowInitializer;
+  QThread *th = new QThread;
+  connect(th, SIGNAL(started()), mwi, SLOT(start_initialization()));
+  connect(mwi, SIGNAL(waiting_finished()), this, SLOT(adjust_font_size()));
+  connect(mwi, SIGNAL(waiting_finished()), th, SLOT(quit()));
+  connect(th, SIGNAL(finished()), mwi, SLOT(deleteLater()));
+  connect(th, SIGNAL(finished()), th, SLOT(deleteLater()));
+  mwi->moveToThread(th);
+  th->start();
 }
 /////////////////////////////////////////////////////////////////////////
 
@@ -253,5 +259,21 @@ MainWindow::adjust_font_size() {
   }
   font.setPointSize(l);
   ui->m_lbl_current_time->setFont(font);  
+}
+/////////////////////////////////////////////////////////////////////////
+
+MainWindowInitializer::MainWindowInitializer() {
+
+}
+
+MainWindowInitializer::~MainWindowInitializer() {
+
+}
+////////////////////////////////////////////////////////
+
+void
+MainWindowInitializer::start_initialization() {
+  QThread::msleep(100);
+  emit waiting_finished();
 }
 /////////////////////////////////////////////////////////////////////////

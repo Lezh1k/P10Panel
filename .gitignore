@@ -1,4 +1,5 @@
 bin/*
 build/*
 build-BoulderingTimer-Desktop-Debug/*
+build-BoulderingTimer-Desktop-Release/*
 *.pro.user

@@ -236,16 +236,22 @@ void
 MainWindow::adjust_font_size() {
   QString str = ui->m_lbl_current_time->text();
   QFont font = ui->m_lbl_current_time->font();
-  QFontMetrics fm(font);
-  int fontSize = -1;
-  do {
-    ++fontSize;
-    font.setPointSize(fontSize + 1);
-    fm = QFontMetrics(font);
-  } while(fm.height() <= ui->m_lbl_current_time->height() &&
-          fm.width(str) < ui->m_lbl_current_time->width());
+  QFontMetrics fm(font);  
 
-  font.setPointSize(fontSize);
+  int f, l, m;
+  l = 2048; f = 0;
+  while (f < l) {
+    m = (f+l) >> 1;
+    font.setPointSize(m);
+    fm = QFontMetrics(font);
+    if (fm.height() > ui->m_lbl_current_time->height() ||
+        fm.width(str) > ui->m_lbl_current_time->width()) {
+      l = m-1;
+    } else {
+      f = m+1;
+    }
+  }
+  font.setPointSize(l);
   ui->m_lbl_current_time->setFont(font);  
 }
 /////////////////////////////////////////////////////////////////////////

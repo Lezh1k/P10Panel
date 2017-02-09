@@ -25,7 +25,7 @@ private:
   typedef void (MainWindow::*pf_state_changed)(void);
 
   Ui::MainWindow *ui;
-  enum {MAIN_TIMER_INTERVAL = 1000};
+  enum {MAIN_TIMER_INTERVAL = 500};
   enum AS_STATE{ AS_IDLE = 0, AS_RUN, AS_LAST } m_state;
   pf_state_changed m_state_callbacks[AS_LAST];
   QString m_btn_text[AS_LAST];
@@ -37,7 +37,7 @@ private:
   int m_time_alarm;
   int m_time_rotate;
 
-  QMediaPlayer m_player;
+  static QMediaPlayer m_player;
   QSerialPort* m_serial_port;
   QStandardItemModel* m_model_ports;
 

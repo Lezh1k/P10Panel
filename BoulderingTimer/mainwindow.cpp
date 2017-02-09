@@ -9,14 +9,18 @@
 
 #include <QStandardItem>
 #include <QStandardItemModel>
+#include <QThread>
+#include <QtConcurrent/QtConcurrent>
 
 static const char* g_time_format = "mm:ss";
 //todo move files to resources.
-static const char* g_alarm_file = "/home/lezh1k/.bt_media/alarm2.wav";
-static const char* g_start_stop_file = "qrc:/wav/files/start.wav";
-
+static const char* g_alarm_file = "qrc:/wav/files/alarm.wav";
+static const char* g_start_file = "qrc:/wav/files/start.wav";
+static const char* g_stop_file  = "qrc:/wav/files/stop.wav";
 static const int TX_BUFFER_SIZE = 5;
 static char g_tx_buffer[TX_BUFFER_SIZE] = {0};
+
+QMediaPlayer MainWindow::m_player;
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -43,7 +47,6 @@ MainWindow::MainWindow(QWidget *parent) :
   m_rotate_timer.setInterval(m_time_rotate);
 
   ui->m_lbl_current_time->setText(ui->m_te_full_time->time().toString(g_time_format));
-
   m_player.setVolume(100);  
 
   m_model_ports = new QStandardItemModel;
@@ -72,6 +75,18 @@ MainWindow::MainWindow(QWidget *parent) :
 
   g_tx_buffer[TX_BUFFER_SIZE-1] = 1;
   set_current_time_text();
+  ui->m_lbl_error->setVisible(false);
+
+  //UGLY HACK N1. I don't know how to adjust font size.
+  //so I'm waiting here 200ms for constuction finishing and
+  //then label is resized by layout. So I need to adjust font
+  //size in that moment. Whoever knows how to adjust font size
+  //right before form is shown - please send me this info to
+  //lezh1k.vohrer@gmail.com.
+  QtConcurrent::run([&](){
+    QThread::msleep(200);
+    adjust_font_size();
+  });
 }
 /////////////////////////////////////////////////////////////////////////
 
@@ -95,12 +110,12 @@ MainWindow::Start() {
   m_player.stop();
   m_rotate_timer.stop();
   m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay();
-  set_current_time_text();
   m_time_alarm = ui->m_te_ring_time->time().msecsSinceStartOfDay();
   m_time_rotate = ui->m_te_rotate_time->time().msecsSinceStartOfDay();
   m_rotate_timer.setInterval(m_time_rotate);
+  set_current_time_text();
   m_main_timer.start();
-  m_player.setMedia(QUrl(g_start_stop_file));
+  m_player.setMedia(QUrl(g_start_file));
   m_player.play();
 }
 /////////////////////////////////////////////////////////////////////////
@@ -116,12 +131,13 @@ MainWindow::Stop() {
 
 void
 MainWindow::change_controls_enabled_state() {
-  bool controls_enabled = m_state == AS_IDLE;
-  ui->m_te_full_time->setEnabled(controls_enabled);
-  ui->m_te_ring_time->setEnabled(controls_enabled);
-  ui->m_te_rotate_time->setEnabled(controls_enabled &&
+  bool ce = m_state == AS_IDLE; //controls enabled
+  ui->m_te_full_time->setEnabled(ce);
+  ui->m_te_ring_time->setEnabled(ce);
+  ui->m_te_rotate_time->setEnabled(ce &&
                                    ui->m_chk_loop->isChecked());
-  ui->m_chk_loop->setEnabled(controls_enabled);
+  ui->m_chk_loop->setEnabled(ce);
+  ui->m_cb_serial_port->setEnabled(ce);
 }
 /////////////////////////////////////////////////////////////////////////
 
@@ -138,7 +154,7 @@ MainWindow::BtnStartStop_Clicked() {
 void
 MainWindow::time_elapsed() {
   m_player.stop();
-  m_player.setMedia(QUrl(g_start_stop_file));
+  m_player.setMedia(QUrl(g_stop_file));
   m_player.play();
   m_main_timer.stop();
   if (!ui->m_chk_loop->isChecked()) {
@@ -202,6 +218,7 @@ MainWindow::TimeEdit_TimeChanged(const QTime& ) {
 
 void MainWindow::CbPorts_IndexChanged(int ix) {
   if (m_serial_port) delete m_serial_port;
+  ui->m_lbl_error->setVisible(false);
   m_serial_port = new QSerialPort(QSerialPortInfo::availablePorts().at(ix));
   m_serial_port->setBaudRate(9600);
   m_serial_port->setParity(QSerialPort::NoParity);
@@ -209,7 +226,8 @@ void MainWindow::CbPorts_IndexChanged(int ix) {
   m_serial_port->setStopBits(QSerialPort::OneStop);
   m_serial_port->setFlowControl(QSerialPort::NoFlowControl);
   if (!m_serial_port->open(QSerialPort::ReadWrite)) {
-    qDebug() << m_serial_port->errorString();
+    ui->m_lbl_error->setVisible(true);
+    ui->m_lbl_error->setText(m_serial_port->errorString());
   }
 }
 /////////////////////////////////////////////////////////////////////////

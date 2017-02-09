@@ -166,10 +166,10 @@ p10_print_current_symbols() {
 
           PORTB |= P10_CLK;
           PORTB &= ~P10_CLK;
-        } //for j
-      } //for i
+        } //for bb
+      } //for gb
 
-    } //for k
+    } //for cs
     PORTB |= P10_STR;
     PORTB &= ~P10_STR;
   } //for group

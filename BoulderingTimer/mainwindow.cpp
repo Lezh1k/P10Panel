@@ -12,11 +12,14 @@
 #include <QThread>
 #include <QtConcurrent/QtConcurrent>
 
-static const char* g_time_format = "mm:ss";
-//todo move files to resources.
+
+static const char* time_formats[2] = {"mm:ss", "hh:mm"};
+static const int   time_coeffs[2] = {1, 60};
+
 static const char* g_alarm_file = "qrc:/wav/files/alarm.wav";
 static const char* g_start_file = "qrc:/wav/files/start.wav";
 static const char* g_stop_file  = "qrc:/wav/files/stop.wav";
+
 static const int TX_BUFFER_SIZE = 5;
 static char g_tx_buffer[TX_BUFFER_SIZE] = {0};
 
@@ -24,6 +27,7 @@ QMediaPlayer MainWindow::m_player;
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
+  m_current_time_format(TF_MIN_SEC),
   ui(new Ui::MainWindow),
   m_state(AS_IDLE),
   m_time_full(240*1000),
@@ -46,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_main_timer.setInterval(MAIN_TIMER_INTERVAL);
   m_rotate_timer.setInterval(m_time_rotate);
 
-  ui->m_lbl_current_time->setText(ui->m_te_full_time->time().toString(g_time_format));
+  ui->m_lbl_current_time->setText(ui->m_te_full_time->time().toString(time_formats[m_current_time_format]));
   m_player.setVolume(100);  
 
   m_model_ports = new QStandardItemModel;
@@ -68,10 +72,13 @@ MainWindow::MainWindow(QWidget *parent) :
           this, SLOT(RotateTimer_Timeout()));
   connect(ui->m_cb_serial_port, SIGNAL(currentIndexChanged(int)),
           this, SLOT(CbPorts_IndexChanged(int)));
+  connect(ui->m_rb_hr_min, SIGNAL(toggled(bool)),
+          this, SLOT(RbHrMin_Toggled(bool)));
+  connect(ui->m_rb_min_sec, SIGNAL(toggled(bool)),
+          this, SLOT(RbMinSec_Toggled(bool)));
 
-  if (QSerialPortInfo::availablePorts().size() > 0) {
+  if (QSerialPortInfo::availablePorts().size() > 0)
     CbPorts_IndexChanged(0);
-  }
 
   g_tx_buffer[TX_BUFFER_SIZE-1] = 1;
   set_current_time_text();
@@ -115,9 +122,9 @@ MainWindow::Start() {
   adjust_font_size();
   m_player.stop();
   m_rotate_timer.stop();
-  m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay();
-  m_time_alarm = ui->m_te_ring_time->time().msecsSinceStartOfDay();
-  m_time_rotate = ui->m_te_rotate_time->time().msecsSinceStartOfDay();
+  m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
+  m_time_alarm = ui->m_te_ring_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
+  m_time_rotate = ui->m_te_rotate_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
   m_rotate_timer.setInterval(m_time_rotate);
   set_current_time_text();
   m_main_timer.start();
@@ -131,6 +138,11 @@ MainWindow::Stop() {
   m_player.stop();
   m_rotate_timer.stop();
   m_main_timer.stop();
+
+  m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
+  m_time_alarm = ui->m_te_ring_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
+  m_time_rotate = ui->m_te_rotate_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
+
   set_current_time_text();
 }
 //////////////////////////////////////////////////////////////
@@ -144,6 +156,8 @@ MainWindow::change_controls_enabled_state() {
                                    ui->m_chk_loop->isChecked());
   ui->m_chk_loop->setEnabled(ce);
   ui->m_cb_serial_port->setEnabled(ce);
+  ui->m_rb_hr_min->setEnabled(ce);
+  ui->m_rb_min_sec->setEnabled(ce);
 }
 /////////////////////////////////////////////////////////////////////////
 
@@ -174,7 +188,7 @@ MainWindow::time_elapsed() {
 void
 MainWindow::set_current_time_text() {
   QString time_str =
-      QTime::fromMSecsSinceStartOfDay(m_time_full).toString(g_time_format);
+      QTime::fromMSecsSinceStartOfDay(m_time_full).toString(time_formats[m_current_time_format]);
   static const int indexes[] = {0, 1, 3, 4};
   for (int i = 0; i < 4; ++i)
     g_tx_buffer[i] = time_str[indexes[i]].digitValue();
@@ -235,6 +249,18 @@ void MainWindow::CbPorts_IndexChanged(int ix) {
     ui->m_lbl_error->setVisible(true);
     ui->m_lbl_error->setText(m_serial_port->errorString());
   }
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::RbMinSec_Toggled(bool flag) {
+  m_current_time_format = flag ? TF_MIN_SEC : TF_HR_MIN;
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::RbHrMin_Toggled(bool flag) {
+  m_current_time_format = flag ? TF_HR_MIN : TF_MIN_SEC;
 }
 /////////////////////////////////////////////////////////////////////////
 

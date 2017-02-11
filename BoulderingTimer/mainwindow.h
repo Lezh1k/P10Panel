@@ -35,6 +35,10 @@ public:
 
 private:
   typedef void (MainWindow::*pf_state_changed)(void);
+  enum time_format {
+    TF_MIN_SEC = 0,
+    TF_HR_MIN
+  } m_current_time_format;
 
   Ui::MainWindow *ui;
   enum {MAIN_TIMER_INTERVAL = 500};
@@ -70,6 +74,8 @@ private slots:
   void RotateTimer_Timeout(void);
   void TimeEdit_TimeChanged(const QTime &);
   void CbPorts_IndexChanged(int ix);
+  void RbMinSec_Toggled(bool flag);
+  void RbHrMin_Toggled(bool flag);
 
   // QWidget interface
 protected:

@@ -19,6 +19,16 @@
      <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,8">
       <item row="0" column="0">
        <layout class="QGridLayout" name="gridLayout" columnstretch="0,5" columnminimumwidth="0,0">
+        <item row="8" column="1">
+         <widget class="QRadioButton" name="m_rb_hr_min">
+          <property name="text">
+           <string>Часы и минуты</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="0">
          <widget class="QLabel" name="m_lbl_full_time">
           <property name="text">
@@ -91,24 +101,24 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
+        <item row="5" column="0">
          <widget class="QLabel" name="m_lbl_serial_port">
           <property name="text">
            <string>Порт :</string>
           </property>
          </widget>
         </item>
-        <item row="3" column="1">
+        <item row="5" column="1">
          <widget class="QComboBox" name="m_cb_serial_port"/>
         </item>
-        <item row="4" column="1">
+        <item row="6" column="1">
          <widget class="QLabel" name="m_lbl_error">
           <property name="text">
            <string>TextLabel</string>
           </property>
          </widget>
         </item>
-        <item row="5" column="0">
+        <item row="9" column="0">
          <spacer name="horizontalSpacer">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -121,17 +131,27 @@
           </property>
          </spacer>
         </item>
-        <item row="5" column="1">
+        <item row="9" column="1">
          <widget class="QCheckBox" name="m_chk_loop">
           <property name="text">
            <string>Зациклить</string>
           </property>
          </widget>
         </item>
-        <item row="6" column="1">
+        <item row="10" column="1">
          <widget class="QPushButton" name="m_btn_start_stop">
           <property name="text">
            <string>Start</string>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="1">
+         <widget class="QRadioButton" name="m_rb_min_sec">
+          <property name="text">
+           <string>Минуты и секунды</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
           </property>
          </widget>
         </item>

@@ -118,8 +118,8 @@ MainWindow::resizeEvent(QResizeEvent *event) {
 /////////////////////////////////////////////////////////////////////////
 
 void
-MainWindow::Start() {
-  adjust_font_size();
+MainWindow::Start() {  
+  m_current_time_format = ui->m_rb_min_sec->isChecked() ? TF_MIN_SEC : TF_HR_MIN;
   m_player.stop();
   m_rotate_timer.stop();
   m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
@@ -138,6 +138,7 @@ MainWindow::Stop() {
   m_player.stop();
   m_rotate_timer.stop();
   m_main_timer.stop();
+  m_current_time_format = ui->m_rb_min_sec->isChecked() ? TF_MIN_SEC : TF_HR_MIN;
 
   m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
   m_time_alarm = ui->m_te_ring_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
@@ -152,8 +153,7 @@ MainWindow::change_controls_enabled_state() {
   bool ce = m_state == AS_IDLE; //controls enabled
   ui->m_te_full_time->setEnabled(ce);
   ui->m_te_ring_time->setEnabled(ce);
-  ui->m_te_rotate_time->setEnabled(ce &&
-                                   ui->m_chk_loop->isChecked());
+  ui->m_te_rotate_time->setEnabled(ce && ui->m_chk_loop->isChecked());
   ui->m_chk_loop->setEnabled(ce);
   ui->m_cb_serial_port->setEnabled(ce);
   ui->m_rb_hr_min->setEnabled(ce);
@@ -177,6 +177,7 @@ MainWindow::time_elapsed() {
   m_player.setMedia(QUrl(g_stop_file));
   m_player.play();
   m_main_timer.stop();
+  m_current_time_format = ui->m_rb_min_sec->isChecked() ? TF_MIN_SEC : TF_HR_MIN;
   if (!ui->m_chk_loop->isChecked()) {
     BtnStartStop_Clicked();
     return;
@@ -212,7 +213,11 @@ MainWindow::ChkLoop_Changed(bool checked) {
 
 void
 MainWindow::MainTimer_Timeout() {
+  static const int hour = 60*60*1000;
   m_time_full -= MAIN_TIMER_INTERVAL;
+
+  if (m_time_full < hour)
+    m_current_time_format = TF_MIN_SEC;
 
   if (m_time_full == m_time_alarm) {
     m_player.setMedia(QUrl(g_alarm_file));
@@ -231,7 +236,7 @@ MainWindow::RotateTimer_Timeout() {
 
 void
 MainWindow::TimeEdit_TimeChanged(const QTime& ) {
-  m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay();
+  m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
   set_current_time_text();
 }
 //////////////////////////////////////////////////////////////
@@ -271,7 +276,7 @@ MainWindow::adjust_font_size() {
   QFontMetrics fm(font);  
 
   int f, l, m;
-  l = 2048; f = 0;
+  l = 2048; f = 0; //we don't need such big value. but I want to be sure that we will find font size.
   while (f < l) {
     m = (f+l) >> 1;
     font.setPointSize(m);

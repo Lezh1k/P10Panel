@@ -54,8 +54,9 @@ MainWindow::MainWindow(QWidget *parent) :
   m_player.setVolume(100);  
 
   m_model_ports = new QStandardItemModel;
-  for (int i = 0; i < QSerialPortInfo::availablePorts().size(); ++i) {
-    QStandardItem* item = new QStandardItem(QSerialPortInfo::availablePorts().at(i).portName());
+  QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
+  for (auto i : lst_ports) {
+    QStandardItem* item = new QStandardItem(i.portName());
     m_model_ports->appendRow(item);
   }
   ui->m_cb_serial_port->setModel(m_model_ports);
@@ -258,8 +259,9 @@ void MainWindow::CbPorts_IndexChanged(int ix) {
     }
   } else {
     m_model_ports->clear();
-    for (int i = 0; i < QSerialPortInfo::availablePorts().size(); ++i) {
-      QStandardItem* item = new QStandardItem(QSerialPortInfo::availablePorts().at(i).portName());
+    QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
+    for (auto i : lst_ports) {
+      QStandardItem* item = new QStandardItem(i.portName());
       m_model_ports->appendRow(item);
     }
   }
@@ -285,7 +287,7 @@ MainWindow::adjust_font_size() {
   QFontMetrics fm(font);  
 
   int f, l, m;
-  l = 2048; f = 0; //we don't need such big value. but I want to be sure that we will find font size.
+  l = 2048; f = 0; //we don't need such a big value. but I want to be sure that we will find font size.
   while (f < l) {
     m = (f+l) >> 1;
     font.setPointSize(m);

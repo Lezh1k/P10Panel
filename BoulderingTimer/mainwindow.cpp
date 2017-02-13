@@ -244,15 +244,24 @@ MainWindow::TimeEdit_TimeChanged(const QTime& ) {
 void MainWindow::CbPorts_IndexChanged(int ix) {
   if (m_serial_port) delete m_serial_port;
   ui->m_lbl_error->setVisible(false);
-  m_serial_port = new QSerialPort(QSerialPortInfo::availablePorts().at(ix));
-  m_serial_port->setBaudRate(9600);
-  m_serial_port->setParity(QSerialPort::NoParity);
-  m_serial_port->setDataBits(QSerialPort::Data8);
-  m_serial_port->setStopBits(QSerialPort::OneStop);
-  m_serial_port->setFlowControl(QSerialPort::NoFlowControl);
-  if (!m_serial_port->open(QSerialPort::ReadWrite)) {
-    ui->m_lbl_error->setVisible(true);
-    ui->m_lbl_error->setText(m_serial_port->errorString());
+  QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
+  if (lst_ports.size() > ix) {
+    m_serial_port = new QSerialPort(lst_ports.at(ix));
+    m_serial_port->setBaudRate(9600);
+    m_serial_port->setParity(QSerialPort::NoParity);
+    m_serial_port->setDataBits(QSerialPort::Data8);
+    m_serial_port->setStopBits(QSerialPort::OneStop);
+    m_serial_port->setFlowControl(QSerialPort::NoFlowControl);
+    if (!m_serial_port->open(QSerialPort::ReadWrite)) {
+      ui->m_lbl_error->setVisible(true);
+      ui->m_lbl_error->setText(m_serial_port->errorString());
+    }
+  } else {
+    m_model_ports->clear();
+    for (int i = 0; i < QSerialPortInfo::availablePorts().size(); ++i) {
+      QStandardItem* item = new QStandardItem(QSerialPortInfo::availablePorts().at(i).portName());
+      m_model_ports->appendRow(item);
+    }
   }
 }
 //////////////////////////////////////////////////////////////

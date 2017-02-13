@@ -3,3 +3,4 @@ build/*
 build-BoulderingTimer-Desktop-Debug/*
 build-BoulderingTimer-Desktop-Release/*
 *.pro.user
+BoulderingTimer/bouldering_timer_bin/*

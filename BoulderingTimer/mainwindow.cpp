@@ -39,8 +39,8 @@ MainWindow::MainWindow(QWidget *parent) :
   m_start_file = QApplication::applicationDirPath() + QDir::separator() + "start.wav";
   m_stop_file  = QApplication::applicationDirPath() + QDir::separator() + "stop.wav";
 
-  ui->m_le_start_sound_path->setText(m_warning_file);
-  ui->m_le_warning_sound_path->setText(m_start_file);
+  ui->m_le_start_sound_path->setText(m_start_file);
+  ui->m_le_warning_sound_path->setText(m_warning_file);
   ui->m_le_stop_sound_path->setText(m_stop_file);
 
   ui->m_te_full_time->setTime(QTime::fromMSecsSinceStartOfDay(m_time_full));
@@ -138,8 +138,7 @@ MainWindow::Start() {
 /////////////////////////////////////////////////////////////////////////
 
 void
-MainWindow::Stop() {
-  play_media(m_stop_file);
+MainWindow::Stop() {  
   m_rotate_timer.stop();
   m_main_timer.stop();
   m_current_time_format = ui->m_rb_min_sec->isChecked() ? TF_MIN_SEC : TF_HR_MIN;
@@ -178,6 +177,7 @@ MainWindow::BtnStartStop_Clicked() {
 void
 MainWindow::time_elapsed() {  
 
+  play_media(m_stop_file);
   m_main_timer.stop();
   m_current_time_format = ui->m_rb_min_sec->isChecked() ? TF_MIN_SEC : TF_HR_MIN;
   if (!ui->m_chk_loop->isChecked()) {

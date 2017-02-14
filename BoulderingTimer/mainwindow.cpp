@@ -74,10 +74,13 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->m_cb_serial_port, SIGNAL(currentIndexChanged(int)), this, SLOT(CbPorts_IndexChanged(int)));
   connect(ui->m_rb_hr_min, SIGNAL(toggled(bool)), this, SLOT(RbHrMin_Toggled(bool)));
   connect(ui->m_rb_min_sec, SIGNAL(toggled(bool)), this, SLOT(RbMinSec_Toggled(bool)));
+
   connect(ui->m_btn_dlg_start_sound, SIGNAL(released()), this, SLOT(BtnStartDlg_Released()));
+  connect(ui->m_btn_dlg_warning_sound, SIGNAL(released()), this, SLOT(BtnWarningDlg_Released()));
+  connect(ui->m_btn_dlg_stop_sound, SIGNAL(released()), this, SLOT(BtnStopDlg_Released()));
 
   connect(ui->m_btn_play_start_sound, SIGNAL(released()), this, SLOT(BtnPlayStartSound_Released()));
-  connect(ui->m_btn_dlg_warning_sound, SIGNAL(released()), this, SLOT(BtnPlayWarningSound_Released()));
+  connect(ui->m_btn_play_warning_sound, SIGNAL(released()), this, SLOT(BtnPlayWarningSound_Released()));
   connect(ui->m_btn_play_stop_sound, SIGNAL(released()), this, SLOT(BtnPlayStopSound_Released()));
 
   if (QSerialPortInfo::availablePorts().size() > 0)

@@ -1,7 +1,0 @@
-<RCC>
-    <qresource prefix="/wav/files">
-        <file>start.wav</file>
-        <file>alarm.wav</file>
-        <file>stop.wav</file>
-    </qresource>
-</RCC>

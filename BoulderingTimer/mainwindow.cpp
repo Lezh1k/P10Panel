@@ -198,7 +198,7 @@ MainWindow::set_current_time_text() {
 //////////////////////////////////////////////////////////////
 
 void MainWindow::send_to_p10() {
-  if (!m_serial_port->isOpen()) return;
+  if (m_serial_port==nullptr || !m_serial_port->isOpen()) return;
   m_serial_port->write(g_tx_buffer, TX_BUFFER_SIZE);
   m_serial_port->flush();
 }
@@ -247,7 +247,11 @@ MainWindow::TimeEdit_TimeChanged(const QTime& ) {
 //////////////////////////////////////////////////////////////
 
 void MainWindow::CbPorts_IndexChanged(int ix) {
-  if (m_serial_port) delete m_serial_port;
+  if (m_serial_port) {
+    delete m_serial_port;
+    m_serial_port = nullptr;
+  }
+
   ui->m_lbl_error->setVisible(false);
   QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
   if (lst_ports.size() > ix) {

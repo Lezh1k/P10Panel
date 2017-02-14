@@ -45,7 +45,6 @@ private:
   enum AS_STATE{ AS_IDLE = 0, AS_RUN, AS_LAST } m_state;
   pf_state_changed m_state_callbacks[AS_LAST];
   QString m_btn_text[AS_LAST];
-
   QTimer m_main_timer;
   QTimer m_rotate_timer;
 
@@ -57,6 +56,10 @@ private:
   QSerialPort* m_serial_port;
   QStandardItemModel* m_model_ports;
 
+  QString m_warning_file;
+  QString m_start_file;
+  QString m_stop_file;
+
   void Start(void);
   void Stop(void);
 
@@ -65,6 +68,8 @@ private:
   void set_current_time_text(void);
 
   void send_to_p10();
+
+  void play_media(const QString& file_path);
 
 private slots:
   void adjust_font_size();
@@ -76,6 +81,14 @@ private slots:
   void CbPorts_IndexChanged(int ix);
   void RbMinSec_Toggled(bool flag);
   void RbHrMin_Toggled(bool flag);
+
+  void BtnStartDlg_Released();
+  void BtnWarningDlg_Released();
+  void BtnStopDlg_Released();
+
+  void BtnPlayStartSound_Released();
+  void BtnPlayWarningSound_Released();
+  void BtnPlayStopSound_Released();
 
   // QWidget interface
 protected:

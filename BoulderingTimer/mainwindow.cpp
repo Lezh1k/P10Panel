@@ -11,14 +11,12 @@
 #include <QStandardItemModel>
 #include <QThread>
 #include <QtConcurrent/QtConcurrent>
-
+#include <QApplication>
+#include <QFileDialog>
+#include <QSettings>
 
 static const char* time_formats[2] = {"mm:ss", "hh:mm"};
 static const int   time_coeffs[2] = {1, 60};
-
-static const char* g_alarm_file = "qrc:/wav/files/alarm.wav";
-static const char* g_start_file = "qrc:/wav/files/start.wav";
-static const char* g_stop_file  = "qrc:/wav/files/stop.wav";
 
 static const int TX_BUFFER_SIZE = 5;
 static char g_tx_buffer[TX_BUFFER_SIZE] = {0};
@@ -37,6 +35,13 @@ MainWindow::MainWindow(QWidget *parent) :
   m_model_ports(nullptr) {
 
   ui->setupUi(this);
+  m_warning_file = QApplication::applicationDirPath() + QDir::separator() + "alarm.wav";
+  m_start_file = QApplication::applicationDirPath() + QDir::separator() + "start.wav";
+  m_stop_file  = QApplication::applicationDirPath() + QDir::separator() + "stop.wav";
+
+  ui->m_le_start_sound_path->setText(m_warning_file);
+  ui->m_le_warning_sound_path->setText(m_start_file);
+  ui->m_le_stop_sound_path->setText(m_stop_file);
 
   ui->m_te_full_time->setTime(QTime::fromMSecsSinceStartOfDay(m_time_full));
   ui->m_te_ring_time->setTime(QTime::fromMSecsSinceStartOfDay(m_time_alarm));
@@ -61,22 +66,19 @@ MainWindow::MainWindow(QWidget *parent) :
   }
   ui->m_cb_serial_port->setModel(m_model_ports);
 
-  connect(ui->m_chk_loop, SIGNAL(toggled(bool)),
-          this, SLOT(ChkLoop_Changed(bool)));
-  connect(ui->m_btn_start_stop, SIGNAL(pressed()),
-          this, SLOT(BtnStartStop_Clicked()));
-  connect(&m_main_timer, SIGNAL(timeout()),
-          this, SLOT(MainTimer_Timeout()));
-  connect(ui->m_te_full_time, SIGNAL(timeChanged(QTime)),
-          this, SLOT(TimeEdit_TimeChanged(QTime)));
-  connect(&m_rotate_timer, SIGNAL(timeout()),
-          this, SLOT(RotateTimer_Timeout()));
-  connect(ui->m_cb_serial_port, SIGNAL(currentIndexChanged(int)),
-          this, SLOT(CbPorts_IndexChanged(int)));
-  connect(ui->m_rb_hr_min, SIGNAL(toggled(bool)),
-          this, SLOT(RbHrMin_Toggled(bool)));
-  connect(ui->m_rb_min_sec, SIGNAL(toggled(bool)),
-          this, SLOT(RbMinSec_Toggled(bool)));
+  connect(ui->m_chk_loop, SIGNAL(toggled(bool)), this, SLOT(ChkLoop_Changed(bool)));
+  connect(ui->m_btn_start_stop, SIGNAL(pressed()), this, SLOT(BtnStartStop_Clicked()));
+  connect(&m_main_timer, SIGNAL(timeout()), this, SLOT(MainTimer_Timeout()));
+  connect(ui->m_te_full_time, SIGNAL(timeChanged(QTime)), this, SLOT(TimeEdit_TimeChanged(QTime)));
+  connect(&m_rotate_timer, SIGNAL(timeout()), this, SLOT(RotateTimer_Timeout()));
+  connect(ui->m_cb_serial_port, SIGNAL(currentIndexChanged(int)), this, SLOT(CbPorts_IndexChanged(int)));
+  connect(ui->m_rb_hr_min, SIGNAL(toggled(bool)), this, SLOT(RbHrMin_Toggled(bool)));
+  connect(ui->m_rb_min_sec, SIGNAL(toggled(bool)), this, SLOT(RbMinSec_Toggled(bool)));
+  connect(ui->m_btn_dlg_start_sound, SIGNAL(released()), this, SLOT(BtnStartDlg_Released()));
+
+  connect(ui->m_btn_play_start_sound, SIGNAL(released()), this, SLOT(BtnPlayStartSound_Released()));
+  connect(ui->m_btn_dlg_warning_sound, SIGNAL(released()), this, SLOT(BtnPlayWarningSound_Released()));
+  connect(ui->m_btn_play_stop_sound, SIGNAL(released()), this, SLOT(BtnPlayStopSound_Released()));
 
   if (QSerialPortInfo::availablePorts().size() > 0)
     CbPorts_IndexChanged(0);
@@ -121,7 +123,7 @@ MainWindow::resizeEvent(QResizeEvent *event) {
 void
 MainWindow::Start() {  
   m_current_time_format = ui->m_rb_min_sec->isChecked() ? TF_MIN_SEC : TF_HR_MIN;
-  m_player.stop();
+  play_media(m_start_file);
   m_rotate_timer.stop();
   m_time_full = ui->m_te_full_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
   m_time_alarm = ui->m_te_ring_time->time().msecsSinceStartOfDay() * time_coeffs[m_current_time_format];
@@ -129,14 +131,12 @@ MainWindow::Start() {
   m_rotate_timer.setInterval(m_time_rotate);
   set_current_time_text();
   m_main_timer.start();
-  m_player.setMedia(QUrl(g_start_file));
-  m_player.play();
 }
 /////////////////////////////////////////////////////////////////////////
 
 void
 MainWindow::Stop() {
-  m_player.stop();
+  play_media(m_stop_file);
   m_rotate_timer.stop();
   m_main_timer.stop();
   m_current_time_format = ui->m_rb_min_sec->isChecked() ? TF_MIN_SEC : TF_HR_MIN;
@@ -202,6 +202,14 @@ void MainWindow::send_to_p10() {
   m_serial_port->write(g_tx_buffer, TX_BUFFER_SIZE);
   m_serial_port->flush();
 }
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::play_media(const QString &file_path) {
+  m_player.stop();
+  m_player.setMedia(QUrl::fromLocalFile(file_path));
+  m_player.play();
+}
 /////////////////////////////////////////////////////////////////////////
 
 void
@@ -218,15 +226,12 @@ MainWindow::MainTimer_Timeout() {
   if (m_time_full < hour)
     m_current_time_format = TF_MIN_SEC;
 
-  if (m_time_full == m_time_alarm) {
-    m_player.setMedia(QUrl(g_alarm_file));
-    m_player.play();
-  }
+  if (m_time_full == m_time_alarm)
+    play_media(m_warning_file);
+
 
   if (m_time_full <= 0) {
-    m_player.stop();
-    m_player.setMedia(QUrl(g_stop_file));
-    m_player.play();
+    play_media(m_stop_file);
     time_elapsed();
   }
   set_current_time_text();
@@ -285,6 +290,63 @@ MainWindow::RbMinSec_Toggled(bool flag) {
 void
 MainWindow::RbHrMin_Toggled(bool flag) {
   m_current_time_format = flag ? TF_HR_MIN : TF_MIN_SEC;
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::BtnStartDlg_Released() {
+  QString fp = QFileDialog::getOpenFileName(nullptr, "Сигнал старта",
+                                            QApplication::applicationDirPath(), "Wav files (*.wav);;");
+  if (fp.isEmpty()) return;
+  QFileInfo fi(fp);
+  if (!fi.exists()) return;
+
+  m_start_file = fp;
+  ui->m_le_start_sound_path->setText(fp);
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::BtnWarningDlg_Released() {
+  QString fp = QFileDialog::getOpenFileName(nullptr, "Сигнал предупреждения",
+                                            QApplication::applicationDirPath(), "Wav files (*.wav);;");
+  if (fp.isEmpty()) return;
+  QFileInfo fi(fp);
+  if (!fi.exists()) return;
+
+  m_warning_file = fp;
+  ui->m_le_warning_sound_path->setText(fp);
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::BtnStopDlg_Released() {
+  QString fp = QFileDialog::getOpenFileName(nullptr, "Сигнал завершения",
+                                            QApplication::applicationDirPath(), "Wav files (*.wav);;");
+  if (fp.isEmpty()) return;
+  QFileInfo fi(fp);
+  if (!fi.exists()) return;
+
+  m_stop_file = fp;
+  ui->m_le_stop_sound_path->setText(fp);
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::BtnPlayStartSound_Released() {
+  play_media(m_start_file);
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::BtnPlayWarningSound_Released() {
+  play_media(m_warning_file);
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::BtnPlayStopSound_Released() {
+  play_media(m_stop_file);
 }
 /////////////////////////////////////////////////////////////////////////
 

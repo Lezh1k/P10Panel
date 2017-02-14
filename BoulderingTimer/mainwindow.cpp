@@ -173,10 +173,8 @@ MainWindow::BtnStartStop_Clicked() {
 /////////////////////////////////////////////////////////////////////////
 
 void
-MainWindow::time_elapsed() {
-  m_player.stop();
-  m_player.setMedia(QUrl(g_stop_file));
-  m_player.play();
+MainWindow::time_elapsed() {  
+
   m_main_timer.stop();
   m_current_time_format = ui->m_rb_min_sec->isChecked() ? TF_MIN_SEC : TF_HR_MIN;
   if (!ui->m_chk_loop->isChecked()) {
@@ -224,7 +222,13 @@ MainWindow::MainTimer_Timeout() {
     m_player.setMedia(QUrl(g_alarm_file));
     m_player.play();
   }
-  if (m_time_full <= 0) time_elapsed();
+
+  if (m_time_full <= 0) {
+    m_player.stop();
+    m_player.setMedia(QUrl(g_stop_file));
+    m_player.play();
+    time_elapsed();
+  }
   set_current_time_text();
 }
 /////////////////////////////////////////////////////////////////////////

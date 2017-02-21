@@ -3,8 +3,15 @@
 
 #include <stdint.h>
 
-void p10_clr();
-void p10_set_pixel(uint8_t x, uint8_t y);
-void p10_clr_pixel(uint8_t x, uint8_t y);
+class CP10Controller {
+
+private:
+
+public:
+  void p10_clr();
+  void p10_set_pixel(uint32_t x, uint32_t y);
+  void p10_clr_pixel(uint32_t x, uint32_t y);
+  void p10_set_digit(uint8_t pos, uint8_t dig);
+}
 
 #endif // P10_CONTROLLER_H

@@ -12,9 +12,12 @@ TARGET = BoulderingTimer
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-        mainwindow.cpp
+SOURCES += src/main.cpp\
+        src/mainwindow.cpp \
+    src/p10_controller.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += include/mainwindow.h\
+        include/screen.h \
+    include/p10_controller.h
 
-FORMS    += mainwindow.ui
+FORMS    += forms/mainwindow.ui

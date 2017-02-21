@@ -12,5 +12,5 @@ DISTFILES += \
     Makefile
 
 SOURCES += \
-    src/main.c
-
+    src/main.c \
+    src/p10_screen.c

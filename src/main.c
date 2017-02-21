@@ -10,33 +10,26 @@
 
 #define F_CPU       8000000UL
 #define BAUD_RATE   9600UL
-#define UBRR_VAL  (F_CPU / (16 * BAUD_RATE) - 1)
+#define UBRR_VAL    (F_CPU / (16 * BAUD_RATE) - 1)
 
 #define enable_usart_rx_int()   (UCSRB |= (1 << RXCIE))
 #define disable_usart_rx_int()  (UCSRB &= ~(1 << RXCIE))
 #define enable_usart_tx_int()   (UCSRB |= (1 << TXCIE))
 #define disable_usart_tx_int()  (UCSRB &= ~(1 << TXCIE))
 
-#define BUFF_SIZE         5
-#define SYM_COUNT         4
-#define GROUP_COUNT       4
-#define BYTES_IN_GROUP    4
-#define BYTES_IN_SYMBOL   16
+#define BUFF_SIZE         64
+#define BYTES_IN_GROUP    16
+#define GROUP_CNT         (BUFF_SIZE / BYTES_IN_GROUP)
 
-void p10_print_current_symbols();
-static uint8_t current_symbols[BUFF_SIZE] = {0};
+void p10_print_pixel_buffer();
+static uint8_t pixel_buffer[BUFF_SIZE] = {0xff};
 //////////////////////////////////////////////////////////////
 
 static volatile uint8_t rx_n = 0;
 ISR(USART_RX_vect) {
   register uint8_t udr_val;
   disable_usart_rx_int();
-  udr_val = UDR;
-  if (udr_val > 9)
-    udr_val = 9;
-  current_symbols[rx_n] = udr_val;
-  if (++rx_n == BUFF_SIZE)
-    rx_n = 0;
+  udr_val = UDR;  
   enable_usart_rx_int();
 }
 //////////////////////////////////////////////////////////////
@@ -59,9 +52,10 @@ main(void) {
   enable_usart_rx_int();
   enable_usart_tx_int();
   sei();
-  while (1) {
-    p10_print_current_symbols();
-  }
+
+  while (1)
+    p10_print_pixel_buffer();
+
   return 0;
 }
 //////////////////////////////////////////////////////////////
@@ -88,88 +82,23 @@ inline void set_group(int8_t group) {
 }
 //////////////////////////////////////////////////////////////
 
-static const uint8_t sym_table[] PROGMEM= {
-  //0
-  0b01111111, 0b01100011, 0b01100011, 0b01111111,
-  0b01111111, 0b01100011, 0b01100011, 0b01111111,
-  0b00000000, 0b01100011, 0b01100011, 0b01100011,
-  0b01100011, 0b01100011, 0b01100011, 0b00000000,
-  //1
-  0b00000011, 0b00000011, 0b00000011, 0b00000011,
-  0b00000011, 0b00000011, 0b00000011, 0b00000011,
-  0b00000000, 0b00000011, 0b00000011, 0b00000011,
-  0b00000011, 0b00000011, 0b00000011, 0b00000000,
-  //2
-  0b01111111, 0b01100000, 0b00000011, 0b01111111,
-  0b01111111, 0b01100000, 0b00000011, 0b01111111,
-  0b00000000, 0b01100000, 0b01111111, 0b00000011,
-  0b01100000, 0b01111111, 0b00000011, 0b00000000,
-  //3
-  0b01111111, 0b00000011, 0b00000011, 0b01111111,
-  0b01111111, 0b00000011, 0b00000011, 0b01111111,
-  0b00000000, 0b00000011, 0b01111111, 0b00000011,
-  0b00000011, 0b01111111, 0b00000011, 0b00000000,
-  //4
-  0b00000011, 0b00000011, 0b01100011, 0b01100011,
-  0b00000011, 0b00000011, 0b01100011, 0b01100011,
-  0b00000000, 0b00000011, 0b01111111, 0b01100011,
-  0b00000011, 0b01111111, 0b01100011, 0b00000000,
-  //5
-  0b01111111, 0b00000011, 0b01100000, 0b01111111,
-  0b01111111, 0b00000011, 0b01100000, 0b01111111,
-  0b00000000, 0b00000011, 0b01111111, 0b01100000,
-  0b00000011, 0b01111111, 0b01100000, 0b00000000,
-  //6
-  0b01111111, 0b01100011, 0b01100000, 0b01111111,
-  0b01111111, 0b01100011, 0b01100000, 0b01111111,
-  0b00000000, 0b01100011, 0b01111111, 0b01100000,
-  0b01100011, 0b01111111, 0b01100000, 0b00000000,
-  //7
-  0b00000011, 0b00000011, 0b00000011, 0b01111111,
-  0b00000011, 0b00000011, 0b00000011, 0b01111111,
-  0b00000000, 0b00000011, 0b00000011, 0b00000011,
-  0b00000011, 0b00000011, 0b00000011, 0b00000000,
-  //8
-  0b01111111, 0b01100011, 0b01100011, 0b01111111,
-  0b01111111, 0b01100011, 0b01100011, 0b01111111,
-  0b00000000, 0b01100011, 0b01111111, 0b01100011,
-  0b01100011, 0b01111111, 0b01100011, 0b00000000,
-  //9
-  0b01111111, 0b00000011, 0b01100011, 0b01111111,
-  0b01111111, 0b00000011, 0b01100011, 0b01111111,
-  0b00000000, 0b00000011, 0b01111111, 0b01100011,
-  0b00000011, 0b01111111, 0b01100011, 0b00000000,
-};
-
 void
-p10_print_current_symbols() {
-  //group, group_byte, byte_bit, current_symbol, temp
-  int8_t gr, gb, bb, cs, tmp;
-
-  for (gr = 0; gr < GROUP_COUNT; ++gr) {
+p10_print_pixel_buffer() {
+  //group, group_byte, byte_bit, current_symbol
+  int8_t gr, gb, bb, cs;
+  cs = 0;
+  for (gr = 0; gr < GROUP_CNT; ++gr) {
     set_group(gr);
-    for (cs = 0; cs < SYM_COUNT; ++cs) {
-      for (gb = 0; gb < BYTES_IN_GROUP; ++gb) {
+    for (gb = 0; gb < BYTES_IN_GROUP; ++gb, ++cs) {
+      for (bb = 7; bb >=0 ; --bb) {
+        if (pixel_buffer[cs] & (1 << bb)) PORTB &= ~P10_R;
+        else PORTB |= P10_R;
 
-        tmp = pgm_read_byte(&sym_table[current_symbols[cs]*BYTES_IN_GROUP*GROUP_COUNT + gr*BYTES_IN_GROUP + gb]);
+        PORTB |= P10_CLK;
+        PORTB &= ~P10_CLK;
+      } //for bb
+    } //for gb
 
-        if (current_symbols[BUFF_SIZE-1]) {
-          if (cs == 2) {
-            if (gb == 1 && (gr == 1 || gr == 2)) tmp |= 0b10000000;
-            if (gb == 2 && (gr == 0 || gr == 3)) tmp |= 0b10000000;
-          }
-        }
-
-        for (bb = 7; bb >=0 ; --bb) {
-          if (tmp & (1 << bb)) PORTB &= ~P10_R;
-          else PORTB |= P10_R;
-
-          PORTB |= P10_CLK;
-          PORTB &= ~P10_CLK;
-        } //for bb
-      } //for gb
-
-    } //for cs
     PORTB |= P10_STR;
     PORTB &= ~P10_STR;
   } //for group

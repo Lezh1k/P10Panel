@@ -1,0 +1,13 @@
+#ifndef P10_CONTROLLER_H
+#define P10_CONTROLLER_H
+
+#include <stdint.h>
+namespace p10_controller {
+  void p10_clr();
+  void p10_set_pixel(uint32_t x, uint32_t y);
+  void p10_clr_pixel(uint32_t x, uint32_t y);  
+  void p10_line(int x0, int y0, 
+                int x1, int y1);
+}
+
+#endif // P10_CONTROLLER_H

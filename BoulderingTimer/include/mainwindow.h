@@ -66,9 +66,6 @@ private:
   void change_controls_enabled_state();
   void time_elapsed(void);
   void set_current_time_text(void);
-
-  void send_to_p10();
-
   void play_media(const QString& file_path);
 
 private slots:

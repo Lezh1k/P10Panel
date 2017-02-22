@@ -1,46 +1,57 @@
-#include "include/p10_controller.h"
+#include <QSerialPort>
+#include <QtSerialPort/QSerialPort>
+#include <QtSerialPort/QSerialPortInfo>
 #include <string.h>
+#include <QDebug>
 
+#include "include/p10_controller.h"
 
-#define BYTES_IN_GROUP      4
-#define GROUP_CNT           4
-#define BITS_COUNT          8 //in byte on AVR and Intel
-#define COL_CNT             4
-#define ROW_CNT             16
-#define BUFF_SIZE           (COL_CNT*ROW_CNT)
+CP10Controller::CP10Controller()
+{
 
-static const uint8_t virtual_screen[BUFF_SIZE] = {0};
+}
+
+CP10Controller::~CP10Controller()
+{
+
+}
+//////////////////////////////////////////////////////////////
 
 void
-CP10Controller::p10_clr() {
-  memset(virtual_screen, 0, BUFF_SIZE);
+CP10Controller::clr() {
+  memset(m_virtual_screen, 0, BUFF_SIZE);
 }
 //////////////////////////////////////////////////////////////
 
 
+//todo calculate these values
+static const uint8_t yr_vals[CP10Controller::ROW_CNT] = {
+  51, 3, 19, 35,
+  50, 2, 18, 34,
+  49, 1, 17, 33,
+  48, 0, 16, 32
+};
+
 void
-CP10Controller::p10_set_pixel(uint32_t x, uint32_t y) {
-  //todo calculate these values
-  static const uint8_t yr_vals[BYTES_IN_GROUP] = {
-    51, 3, 19, 35,
-    50, 2, 18, 34,
-    49, 1, 17, 33,
-    48, 0, 16, 32
-  };
+CP10Controller::set_pixel(uint32_t x, uint32_t y) {
   uint8_t yr = yr_vals[y];
   uint8_t xr = yr + ((x / BITS_COUNT) * COL_CNT);
-  screen_buffer[xr] |= (0x80 >> (x % 8));
+  m_virtual_screen[xr] |= (0x80 >> (x % 8));
+  p10_send_byte(xr);
 }
 //////////////////////////////////////////////////////////////
 
 void
-CP10Controller::p10_clr_pixel(uint32_t x, uint32_t y) {
-
+CP10Controller::clr_pixel(uint32_t x, uint32_t y) {
+  uint8_t yr = yr_vals[y];
+  uint8_t xr = yr + ((x / BITS_COUNT) * COL_CNT);
+  m_virtual_screen[xr] &= ~(0x80 >> (x % 8));
+  p10_send_byte(xr);
 }
 //////////////////////////////////////////////////////////////
 
 void
-CP10Controller::p10_set_digit(uint8_t pos, uint8_t dig) {
+CP10Controller::set_digit(uint8_t pos, uint8_t dig) {
   static const uint8_t sym_table[] = {
     //0
     0b01111111, 0b01100011, 0b01100011, 0b01111111,
@@ -93,13 +104,31 @@ CP10Controller::p10_set_digit(uint8_t pos, uint8_t dig) {
     0b00000000, 0b00000011, 0b01111111, 0b01100011,
     0b00000011, 0b01111111, 0b01100011, 0b00000000,
   };
-  if (dig > 9) return;
 
   for (int gr = 0; gr < GROUP_CNT; ++gr) {
     for (int gb = 0; gb < BYTES_IN_GROUP; ++gb) {
-      virtual_screen[gr*GROUP_CNT*BYTES_IN_GROUP + pos*BYTES_IN_GROUP + gb] =
+      m_virtual_screen[gr*GROUP_CNT*BYTES_IN_GROUP + pos*BYTES_IN_GROUP + gb] =
           sym_table[dig*GROUP_CNT*BYTES_IN_GROUP + gr*BYTES_IN_GROUP + gb];
-    }
-  }
+      p10_send_byte(gr*GROUP_CNT*BYTES_IN_GROUP + pos*BYTES_IN_GROUP + gb);
+    } //for gb
+  } //for gr
+}
+//////////////////////////////////////////////////////////////
+
+void
+CP10Controller::set_serial_port(QSerialPort *port) {
+  m_serial_port = port;
+}
+//////////////////////////////////////////////////////////////
+
+void
+CP10Controller::p10_send_byte(uint8_t ix) {
+  static const uint8_t TX_BUFFER_SIZE = 3;
+  static char cmd[TX_BUFFER_SIZE] = {0};
+  if (m_serial_port==nullptr || !m_serial_port->isOpen())
+    return;
+  cmd[1] = ix; cmd[2] = m_virtual_screen[ix];
+  m_serial_port->write(cmd, TX_BUFFER_SIZE);
+  m_serial_port->flush();
 }
 //////////////////////////////////////////////////////////////

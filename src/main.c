@@ -17,31 +17,36 @@
 #define enable_usart_tx_int()   (UCSRB |= (1 << TXCIE))
 #define disable_usart_tx_int()  (UCSRB &= ~(1 << TXCIE))
 
-#define BUFF_SIZE         64
-#define BYTES_IN_GROUP    16
-#define GROUP_CNT         (BUFF_SIZE / BYTES_IN_GROUP)
+#define SCREEN_BUFF_SIZE         64
+#define SCREEN_BYTES_IN_GROUP    16
+#define SCREEN_GROUP_CNT         (SCREEN_BUFF_SIZE / SCREEN_BYTES_IN_GROUP)
+
+#define COMMAND_BUFF_SIZE        3
+
+static uint8_t pixel_buffer[SCREEN_BUFF_SIZE] = {0};
+static uint8_t cmd_buffer[COMMAND_BUFF_SIZE] = {0};
 
 void p10_print_pixel_buffer();
-static uint8_t pixel_buffer[BUFF_SIZE] = {0xff};
 //////////////////////////////////////////////////////////////
 
 static volatile uint8_t rx_n = 0;
-ISR(USART_RX_vect) {
-  register uint8_t udr_val;
+ISR(USART_RX_vect) {  
   disable_usart_rx_int();
-  udr_val = UDR;  
+  cmd_buffer[rx_n] = UDR;
+  if (++rx_n == COMMAND_BUFF_SIZE) {
+    do {
+      if (cmd_buffer[1] >= SCREEN_BUFF_SIZE) break;
+      pixel_buffer[cmd_buffer[1]] = cmd_buffer[2];
+    } while(0);
+    rx_n = 0;
+  }
   enable_usart_rx_int();
-}
-//////////////////////////////////////////////////////////////
-
-ISR(USART_TX_vect) {
-  disable_usart_tx_int();
-  enable_usart_tx_int();
 }
 //////////////////////////////////////////////////////////////
 
 int
 main(void) {
+  uint8_t i;
   DDRB =  P10_A   | P10_B |
           P10_CLK | P10_STR | P10_R;
   PORTB = 0x00;
@@ -51,18 +56,20 @@ main(void) {
   UCSRB = (1 << RXEN) | (1 << TXEN);
   enable_usart_rx_int();
   enable_usart_tx_int();
+
+  for (i = 0; i < SCREEN_BUFF_SIZE; ++i)
+    pixel_buffer[i] = 0xff;
   sei();
 
   while (1)
     p10_print_pixel_buffer();
-
   return 0;
 }
 //////////////////////////////////////////////////////////////
 
 inline void set_group(int8_t group) {
   switch (group) {
-    case 0x00: //up
+    case 0x00:
       PORTB &= ~P10_A;
       PORTB &= ~P10_B;
       break;
@@ -74,7 +81,7 @@ inline void set_group(int8_t group) {
       PORTB &= ~P10_A;
       PORTB |= P10_B;
       break;
-    case 0x03: //down
+    case 0x03:
       PORTB |= P10_A;
       PORTB |= P10_B;
       break;
@@ -85,11 +92,10 @@ inline void set_group(int8_t group) {
 void
 p10_print_pixel_buffer() {
   //group, group_byte, byte_bit, current_symbol
-  int8_t gr, gb, bb, cs;
-  cs = 0;
-  for (gr = 0; gr < GROUP_CNT; ++gr) {
+  int8_t gr, gb, bb, cs = 0;
+  for (gr = 0; gr < SCREEN_GROUP_CNT; ++gr) {
     set_group(gr);
-    for (gb = 0; gb < BYTES_IN_GROUP; ++gb, ++cs) {
+    for (gb = 0; gb < SCREEN_BYTES_IN_GROUP; ++gb, ++cs) {
       for (bb = 7; bb >=0 ; --bb) {
         if (pixel_buffer[cs] & (1 << bb)) PORTB &= ~P10_R;
         else PORTB |= P10_R;

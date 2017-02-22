@@ -1,4 +1,5 @@
 #include "include/mainwindow.h"
+#include "include/p10_controller.h"
 #include "ui_mainwindow.h"
 
 #include <QDebug>
@@ -10,16 +11,14 @@
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QThread>
-#include <QtConcurrent/QtConcurrent>
 #include <QApplication>
 #include <QFileDialog>
-#include <QSettings>
 
 static const char* time_formats[2] = {"mm:ss", "hh:mm"};
 static const int   time_coeffs[2] = {1, 60};
 
-static const int TX_BUFFER_SIZE = 5;
-static char g_tx_buffer[TX_BUFFER_SIZE] = {0};
+static const int TX_BUFFER_SIZE = 4;
+static char g_tx_buffer[TX_BUFFER_SIZE] = {11, 11, 11, 11};
 
 QMediaPlayer MainWindow::m_player;
 
@@ -192,18 +191,14 @@ void
 MainWindow::set_current_time_text() {
   QString time_str =
       QTime::fromMSecsSinceStartOfDay(m_time_full).toString(time_formats[m_current_time_format]);
-  static const int indexes[] = {0, 1, 3, 4};
-  for (int i = 0; i < 4; ++i)
-    g_tx_buffer[i] = time_str[indexes[i]].digitValue();
-  ui->m_lbl_current_time->setText(time_str);
-  send_to_p10();
-}
-//////////////////////////////////////////////////////////////
-
-void MainWindow::send_to_p10() {
-  if (m_serial_port==nullptr || !m_serial_port->isOpen()) return;
-  m_serial_port->write(g_tx_buffer, TX_BUFFER_SIZE);
-  m_serial_port->flush();
+  static const int indexes[TX_BUFFER_SIZE] = {0, 1, 3, 4};
+  for (int i = 0; i < TX_BUFFER_SIZE; ++i) {
+    if (g_tx_buffer[i] != time_str[indexes[i]].digitValue()) {
+      g_tx_buffer[i] = time_str[indexes[i]].digitValue();
+      CP10Controller::Instance()->set_digit(i, g_tx_buffer[i]);
+    }
+  }    
+  ui->m_lbl_current_time->setText(time_str);  
 }
 //////////////////////////////////////////////////////////////
 
@@ -272,7 +267,9 @@ void MainWindow::CbPorts_IndexChanged(int ix) {
     if (!m_serial_port->open(QSerialPort::ReadWrite)) {
       ui->m_lbl_error->setVisible(true);
       ui->m_lbl_error->setText(m_serial_port->errorString());
+      return;
     }
+    CP10Controller::Instance()->set_serial_port(m_serial_port);
   } else {
     m_model_ports->clear();
     QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();

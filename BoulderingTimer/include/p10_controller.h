@@ -16,8 +16,8 @@ public:
   static const int BUFF_SIZE = (COL_CNT*ROW_CNT);
 
   void clr();
-  void set_pixel(uint32_t x, uint32_t y);
-  void clr_pixel(uint32_t x, uint32_t y);
+  int set_pixel(uint32_t x, uint32_t y);
+  int clr_pixel(uint32_t x, uint32_t y);
   void set_digit(uint8_t pos, uint8_t dig);
   void set_serial_port(QSerialPort* port);
 

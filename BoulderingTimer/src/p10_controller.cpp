@@ -32,21 +32,19 @@ static const uint8_t yr_vals[CP10Controller::ROW_CNT] = {
   48, 0, 16, 32
 };
 
-void
-CP10Controller::set_pixel(uint32_t x, uint32_t y) {
+int CP10Controller::set_pixel(uint32_t x, uint32_t y) {
   uint8_t yr = yr_vals[y];
   uint8_t xr = yr + ((x / BITS_COUNT) * COL_CNT);
   m_virtual_screen[xr] |= (0x80 >> (x % 8));
-  p10_send_byte(xr);
+  return xr;
 }
 //////////////////////////////////////////////////////////////
 
-void
-CP10Controller::clr_pixel(uint32_t x, uint32_t y) {
+int CP10Controller::clr_pixel(uint32_t x, uint32_t y) {
   uint8_t yr = yr_vals[y];
   uint8_t xr = yr + ((x / BITS_COUNT) * COL_CNT);
   m_virtual_screen[xr] &= ~(0x80 >> (x % 8));
-  p10_send_byte(xr);
+  return xr;
 }
 //////////////////////////////////////////////////////////////
 
@@ -123,11 +121,12 @@ CP10Controller::set_serial_port(QSerialPort *port) {
 
 void
 CP10Controller::p10_send_byte(uint8_t ix) {
-  static const uint8_t TX_BUFFER_SIZE = 3;
+  static const uint8_t TX_BUFFER_SIZE = 2;
   static char cmd[TX_BUFFER_SIZE] = {0};
   if (m_serial_port==nullptr || !m_serial_port->isOpen())
     return;
-  cmd[1] = ix; cmd[2] = m_virtual_screen[ix];
+  cmd[0] = ix;
+  cmd[1] = m_virtual_screen[ix];
   m_serial_port->write(cmd, TX_BUFFER_SIZE);
   m_serial_port->flush();
 }

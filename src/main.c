@@ -21,11 +21,13 @@
 #define SCREEN_BYTES_IN_GROUP    16
 #define SCREEN_GROUP_CNT         (SCREEN_BUFF_SIZE / SCREEN_BYTES_IN_GROUP)
 
-#define COMMAND_BUFF_SIZE        3
+#define COMMAND_BUFF_SIZE        2
 
 static uint8_t pixel_buffer[SCREEN_BUFF_SIZE] = {0};
 static uint8_t cmd_buffer[COMMAND_BUFF_SIZE] = {0};
+static volatile uint8_t cmd_received = 0;
 
+void p10_handle_usart_cmd();
 void p10_print_pixel_buffer();
 //////////////////////////////////////////////////////////////
 
@@ -34,13 +36,11 @@ ISR(USART_RX_vect) {
   disable_usart_rx_int();
   cmd_buffer[rx_n] = UDR;
   if (++rx_n == COMMAND_BUFF_SIZE) {
-    do {
-      if (cmd_buffer[1] >= SCREEN_BUFF_SIZE) break;
-      pixel_buffer[cmd_buffer[1]] = cmd_buffer[2];
-    } while(0);
+    cmd_received = 1;
     rx_n = 0;
   }
-  enable_usart_rx_int();
+  if (!cmd_received)
+    enable_usart_rx_int();
 }
 //////////////////////////////////////////////////////////////
 
@@ -61,8 +61,11 @@ main(void) {
     pixel_buffer[i] = 0xff;
   sei();
 
-  while (1)
+  while (1) {
+    if (cmd_received)
+      p10_handle_usart_cmd();
     p10_print_pixel_buffer();
+  }
   return 0;
 }
 //////////////////////////////////////////////////////////////
@@ -86,6 +89,13 @@ inline void set_group(int8_t group) {
       PORTB |= P10_B;
       break;
   }
+}
+//////////////////////////////////////////////////////////////
+
+void
+p10_handle_usart_cmd() {
+  pixel_buffer[cmd_buffer[0]] = cmd_buffer[1];
+  enable_usart_rx_int();
 }
 //////////////////////////////////////////////////////////////
 

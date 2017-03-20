@@ -357,7 +357,7 @@ MainWindow::adjust_font_size() {
   QFontMetrics fm(font);  
 
   int f, l, m;
-  l = 2048; f = 0; //we don't need such a big value. but I want to be sure that we will find font size.
+  l = 1024; f = 0; //we don't need such a big value. but I want to be sure that we will find font size.
   while (f < l) {
     m = (f+l) >> 1;
     font.setPointSize(m);

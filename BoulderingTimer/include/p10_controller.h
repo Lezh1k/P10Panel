@@ -16,8 +16,8 @@ public:
   static const int BUFF_SIZE = (COL_CNT*ROW_CNT);
 
   void clr();
-  int set_pixel(uint32_t x, uint32_t y);
-  int clr_pixel(uint32_t x, uint32_t y);
+  void set_pixel(uint32_t x, uint32_t y);
+  void clr_pixel(uint32_t x, uint32_t y);
   void set_digit(uint8_t pos, uint8_t dig);
   void set_serial_port(QSerialPort* port);
 
@@ -31,6 +31,7 @@ public:
 private:
   QSerialPort* m_serial_port;
   uint8_t m_virtual_screen[BUFF_SIZE] = {0};
+  uint8_t m_changed_bytes[BUFF_SIZE] = {0};
 
   CP10Controller();
   ~CP10Controller();

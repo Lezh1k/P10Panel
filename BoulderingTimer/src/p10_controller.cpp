@@ -6,23 +6,19 @@
 
 #include "include/p10_controller.h"
 
-CP10Controller::CP10Controller()
-{
-
+CP10Controller::CP10Controller() {
 }
 
-CP10Controller::~CP10Controller()
-{
-
+CP10Controller::~CP10Controller() {
 }
 //////////////////////////////////////////////////////////////
 
 void
 CP10Controller::clr() {
   memset(m_virtual_screen, 0, BUFF_SIZE);
+  memset(m_changed_bytes, 1, BUFF_SIZE);
 }
 //////////////////////////////////////////////////////////////
-
 
 //todo calculate these values
 static const uint8_t yr_vals[CP10Controller::ROW_CNT] = {
@@ -32,19 +28,19 @@ static const uint8_t yr_vals[CP10Controller::ROW_CNT] = {
   48, 0, 16, 32
 };
 
-int CP10Controller::set_pixel(uint32_t x, uint32_t y) {
+void CP10Controller::set_pixel(uint32_t x, uint32_t y) {
   uint8_t yr = yr_vals[y];
   uint8_t xr = yr + ((x / BITS_COUNT) * COL_CNT);
   m_virtual_screen[xr] |= (0x80 >> (x % 8));
-  return xr;
+  m_changed_bytes[xr] = 1;
 }
 //////////////////////////////////////////////////////////////
 
-int CP10Controller::clr_pixel(uint32_t x, uint32_t y) {
+void CP10Controller::clr_pixel(uint32_t x, uint32_t y) {
   uint8_t yr = yr_vals[y];
   uint8_t xr = yr + ((x / BITS_COUNT) * COL_CNT);
   m_virtual_screen[xr] &= ~(0x80 >> (x % 8));
-  return xr;
+  m_changed_bytes[xr] = 1;
 }
 //////////////////////////////////////////////////////////////
 

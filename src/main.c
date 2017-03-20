@@ -55,15 +55,10 @@ main(void) {
   UBRRL = UBRR_VAL & 0xff;
   UCSRB = (1 << RXEN) | (1 << TXEN);
   enable_usart_rx_int();
-  enable_usart_tx_int();
-
-  for (i = 0; i < SCREEN_BUFF_SIZE; ++i)
-    pixel_buffer[i] = 0xff;
+  enable_usart_tx_int();  
   sei();
 
-  while (1) {
-    if (cmd_received)
-      p10_handle_usart_cmd();
+  while (1) {    
     p10_print_pixel_buffer();
   }
   return 0;
@@ -106,6 +101,12 @@ p10_print_pixel_buffer() {
   for (gr = 0; gr < SCREEN_GROUP_CNT; ++gr) {
     set_group(gr);
     for (gb = 0; gb < SCREEN_BYTES_IN_GROUP; ++gb, ++cs) {
+
+      if (cmd_received) {
+        p10_handle_usart_cmd();
+        cmd_received = 0;
+      }
+
       for (bb = 7; bb >=0 ; --bb) {
         if (pixel_buffer[cs] & (1 << bb)) PORTB &= ~P10_R;
         else PORTB |= P10_R;
